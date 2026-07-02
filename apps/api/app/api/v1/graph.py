@@ -1,10 +1,10 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.security import get_current_user_id
-from app.repositories.project_repository import ProjectRepository
+from app.api.deps import get_ready_project
 from app.schemas.graph import GraphResponse
 from app.services import memory_service
 
@@ -22,15 +22,7 @@ async def get_knowledge_graph(
     Returns the project's knowledge graph shaped for React Flow.
     Supports optional ?node_type= filter.
     """
-    project_repo = ProjectRepository(db)
-    project = await project_repo.get_by_id(project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    if project.ingestion_status != "completed":
-        raise HTTPException(
-            status_code=400,
-            detail=f"Graph not ready (ingestion status: {project.ingestion_status})",
-        )
+    await get_ready_project(project_id, db)
 
     graph_data = await memory_service.get_graph_data(str(project_id))
 

@@ -1,24 +1,19 @@
 import uuid
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db, AsyncSessionLocal
 from app.core.security import get_current_user_id
+from app.api.deps import get_user_or_401
 from app.repositories.project_repository import ProjectRepository
-from app.repositories.user_repository import UserRepository
 from app.schemas.project import ProjectCreate, ProjectRead
 from app.schemas.ingestion import IngestionStatusResponse, IngestionJobRead
 from app.services.ingestion_service import run_ingestion
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/organizations/{org_id}/projects", tags=["projects"])
-
-
-async def _resolve_user(user_auth_id: str, db: AsyncSession):
-    repo = UserRepository(db)
-    user = await repo.get_by_auth_provider_id(user_auth_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="User not registered")
-    return user
 
 
 @router.post("", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
@@ -28,7 +23,7 @@ async def create_project(
     user_auth_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await _resolve_user(user_auth_id, db)
+    user = await get_user_or_401(user_auth_id, db)
     project_repo = ProjectRepository(db)
     project = await project_repo.create(data, organization_id=org_id, created_by=user.id)
     return project
@@ -83,7 +78,10 @@ async def start_ingestion(
     async def _run_with_fresh_session():
         """Background tasks need their own DB session — the request session closes after response."""
         async with AsyncSessionLocal() as bg_db:
-            await run_ingestion(project_id, job.id, bg_db)
+            try:
+                await run_ingestion(project_id, job.id, bg_db)
+            except Exception:
+                logger.exception("Ingestion background task failed for project %s", project_id)
 
     background_tasks.add_task(_run_with_fresh_session)
 

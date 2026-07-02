@@ -4,7 +4,6 @@ Ingestion Service — GitHub API → Parser → Normalizer → Memory Engine
 Runs as a FastAPI BackgroundTask. Idempotent: safe to re-run on the same project.
 """
 import uuid
-import asyncio
 from datetime import datetime, timezone
 from github import Github, GithubException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -128,8 +127,10 @@ async def run_ingestion(
 
         # --- Step 3: Open PRs ---
         try:
-            prs = repo.get_pulls(state="all")[:20]  # cap at 20 for speed
-            for pr in prs:
+            pr_count = 0
+            for pr in repo.get_pulls(state="all"):
+                if pr_count >= 20:
+                    break
                 documents.append({
                     "type": "PullRequest",
                     "id": f"pr_{pr.number}_{project_id}",
@@ -141,13 +142,16 @@ async def run_ingestion(
                         f"Files changed: {pr.changed_files}\n"
                     ),
                 })
+                pr_count += 1
         except GithubException:
             pass
 
         # --- Step 4: Open Issues ---
         try:
-            issues = repo.get_issues(state="open")[:20]
-            for issue in issues:
+            issue_count = 0
+            for issue in repo.get_issues(state="open"):
+                if issue_count >= 20:
+                    break
                 documents.append({
                     "type": "Issue",
                     "id": f"issue_{issue.number}_{project_id}",
@@ -158,6 +162,7 @@ async def run_ingestion(
                         f"Body: {issue.body or 'No description'}\n"
                     ),
                 })
+                issue_count += 1
         except GithubException:
             pass
 

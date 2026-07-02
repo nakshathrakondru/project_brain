@@ -5,6 +5,7 @@ Uses the native groq package. All three features (ask, generate_tasks,
 generate_onboarding) stream tokens and collect them into a final string.
 Model: llama-3.1-8b-instant
 """
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
@@ -184,7 +185,7 @@ async def generate_tasks(project_id: str, feature_description: str) -> list[dict
 
 async def generate_onboarding(project_id: str) -> str:
     """
-    Onboarding Guide: pull broad context from memory, stream a dev guide from Groq.
+    Onboarding Guide: pull broad context from memory in parallel, stream a dev guide from Groq.
     """
     queries = [
         "project architecture overview",
@@ -193,16 +194,23 @@ async def generate_onboarding(project_id: str) -> str:
         "how to run and test the project",
     ]
 
-    all_context: list[str] = []
-    for q in queries:
-        results = await memory_service.search(
-            project_id=project_id,
-            query=q,
-            search_type="summaries",
-            limit=3,
-        )
-        for r in results:
-            all_context.append(f"[{r['node_type']}] {r['title']}: {r['snippet']}")
+    search_results = await asyncio.gather(
+        *[
+            memory_service.search(
+                project_id=project_id,
+                query=q,
+                search_type="summaries",
+                limit=3,
+            )
+            for q in queries
+        ]
+    )
+
+    all_context: list[str] = [
+        f"[{r['node_type']}] {r['title']}: {r['snippet']}"
+        for results in search_results
+        for r in results
+    ]
 
     context_text = "\n\n".join(all_context) or "Limited project context available."
 

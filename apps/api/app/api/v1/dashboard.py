@@ -1,29 +1,17 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from pydantic import BaseModel
 
 from app.core.db import get_db
 from app.core.security import get_current_user_id
-from app.repositories.project_repository import ProjectRepository
+from app.api.deps import get_project_or_404
 from app.models.task import Task
 from app.models.conversation import AIConversation
-from app.models.ingestion import IngestionJob
+from app.repositories.project_repository import ProjectRepository
+from app.schemas.dashboard import DashboardMetrics
 
 router = APIRouter(tags=["dashboard"])
-
-
-class DashboardMetrics(BaseModel):
-    project_id: uuid.UUID
-    ingestion_status: str
-    tasks_total: int
-    tasks_todo: int
-    tasks_in_progress: int
-    tasks_done: int
-    ai_questions_asked: int
-    files_ingested: int
-    memory_ready: bool
 
 
 @router.get("/projects/{project_id}/dashboard", response_model=DashboardMetrics)
@@ -36,10 +24,7 @@ async def get_dashboard(
     Manager dashboard: aggregated health and activity metrics.
     All metrics are computable from existing Postgres data.
     """
-    project_repo = ProjectRepository(db)
-    project = await project_repo.get_by_id(project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    project = await get_project_or_404(project_id, db)
 
     # Task counts
     task_counts = await db.execute(
@@ -56,6 +41,7 @@ async def get_dashboard(
     ai_count = ai_count_result.scalar_one() or 0
 
     # Files ingested (from latest completed job)
+    project_repo = ProjectRepository(db)
     latest_job = await project_repo.get_latest_ingestion_job(project_id)
     files_ingested = latest_job.files_processed if latest_job else 0
 

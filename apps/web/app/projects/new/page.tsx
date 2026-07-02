@@ -23,6 +23,12 @@ export default function NewProjectPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!DEFAULT_ORG_ID) {
+      setError("No organization configured. Set NEXT_PUBLIC_DEFAULT_ORG_ID in your environment.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 

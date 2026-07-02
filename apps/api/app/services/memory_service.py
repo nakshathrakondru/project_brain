@@ -6,7 +6,6 @@ that lets us swap Cognee, add caching, or enforce access control in one place.
 
 Uses Cognee v1.x API:  cognee.remember() / cognee.recall()
 """
-import os
 import cognee
 from app.core.config import get_settings
 
@@ -30,7 +29,7 @@ def _dataset_name(project_id: str) -> str:
     return f"project_{project_id}"
 
 
-async def write_text(project_id: str, text: str, metadata: dict | None = None) -> None:
+async def write_text(project_id: str, text: str) -> None:
     """Add a single text document to a project's memory."""
     dataset = _dataset_name(project_id)
     await cognee.remember(text, dataset_name=dataset)

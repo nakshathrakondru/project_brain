@@ -28,7 +28,7 @@ async def list_tasks(
     return await task_repo.list_by_project(project_id)
 
 
-@router.post("/projects/{project_id}/tasks", response_model=TaskRead, status_code=201)
+@router.post("/projects/{project_id}/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
 async def create_task(
     project_id: uuid.UUID,
     data: TaskCreate,
@@ -50,7 +50,10 @@ async def update_task_status(
     task_repo = TaskRepository(db)
     task = await task_repo.update_status(task_id, data.status)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    # Verify the task actually belongs to this project
+    if task.project_id != project_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     return task
 
 
@@ -74,6 +77,12 @@ async def generate_tasks(
         project_id=str(project_id),
         feature_description=request.feature_description,
     )
+
+    if not raw_tasks:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI failed to generate tasks. The model may have returned malformed output — try again.",
+        )
 
     task_repo = TaskRepository(db)
     task_creates = [

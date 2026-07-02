@@ -3,7 +3,7 @@ Auth endpoints — thin wrappers around Clerk.
 The frontend handles sign-in/sign-up via Clerk SDK directly.
 These endpoints handle: user upsert on first login, and returning the current user.
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
@@ -23,10 +23,18 @@ async def upsert_current_user(
     Called by the frontend after Clerk login to register/sync the user in our DB.
     Extracts identity from the verified Clerk JWT and upserts the user row.
     """
+    auth_provider_id = payload.get("sub")
+    if not auth_provider_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: missing sub claim")
+
+    email = payload.get("email", "")
+    if not email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token: missing email claim")
+
     user_repo = UserRepository(db)
     upsert_data = UserUpsert(
-        auth_provider_id=payload["sub"],
-        email=payload.get("email", ""),
+        auth_provider_id=auth_provider_id,
+        email=email,
         name=payload.get("name") or payload.get("first_name", ""),
         avatar_url=payload.get("image_url") or payload.get("picture"),
     )
@@ -40,8 +48,6 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
 ):
     """Return the current authenticated user's profile."""
-    from fastapi import HTTPException, status
-
     user_repo = UserRepository(db)
     user = await user_repo.get_by_auth_provider_id(user_id)
     if not user:

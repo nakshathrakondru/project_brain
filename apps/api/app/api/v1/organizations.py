@@ -6,20 +6,12 @@ from sqlalchemy import select
 
 from app.core.db import get_db
 from app.core.security import get_current_user_id
+from app.api.deps import get_user_or_401
 from app.models.organization import Organization, OrganizationMember
-from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.organization import OrganizationCreate, OrganizationRead, InviteMemberRequest
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
-
-
-async def _get_user(user_auth_id: str, db: AsyncSession) -> User:
-    repo = UserRepository(db)
-    user = await repo.get_by_auth_provider_id(user_auth_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not registered")
-    return user
 
 
 @router.post("", response_model=OrganizationRead, status_code=status.HTTP_201_CREATED)
@@ -28,7 +20,7 @@ async def create_organization(
     user_auth_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    user = await _get_user(user_auth_id, db)
+    user = await get_user_or_401(user_auth_id, db)
 
     # Check slug uniqueness
     existing = await db.execute(

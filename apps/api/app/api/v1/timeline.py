@@ -1,27 +1,17 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, union_all
-from datetime import datetime
+from sqlalchemy import select
 
 from app.core.db import get_db
 from app.core.security import get_current_user_id
-from app.repositories.project_repository import ProjectRepository
+from app.api.deps import get_project_or_404
 from app.models.task import Task
 from app.models.conversation import AIConversation
 from app.models.ingestion import IngestionJob
-from pydantic import BaseModel
+from app.schemas.timeline import TimelineEvent
 
 router = APIRouter(tags=["timeline"])
-
-
-class TimelineEvent(BaseModel):
-    id: str
-    type: str        # "task_created", "task_completed", "conversation", "ingestion"
-    title: str
-    description: str | None = None
-    timestamp: datetime
-    metadata: dict = {}
 
 
 @router.get("/projects/{project_id}/timeline", response_model=list[TimelineEvent])
@@ -34,10 +24,7 @@ async def get_timeline(
     Chronological feed of memory events for a project:
     ingestion jobs, task creation/completion, and AI conversations.
     """
-    project_repo = ProjectRepository(db)
-    project = await project_repo.get_by_id(project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    await get_project_or_404(project_id, db)
 
     events: list[TimelineEvent] = []
 

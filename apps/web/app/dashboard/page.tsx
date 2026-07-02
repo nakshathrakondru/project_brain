@@ -18,7 +18,7 @@ function statusIcon(status: Project["ingestion_status"]) {
 }
 
 export default async function DashboardPage() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   let projects: Project[] = [];

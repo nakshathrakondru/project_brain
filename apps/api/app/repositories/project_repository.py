@@ -52,15 +52,17 @@ class ProjectRepository:
 
     async def update_ingestion_status(self, project_id: uuid.UUID, status: str) -> None:
         project = await self.get_by_id(project_id)
-        if project:
-            project.ingestion_status = status
-            await self.db.commit()
+        if not project:
+            raise ValueError(f"Project {project_id} not found — cannot update ingestion status")
+        project.ingestion_status = status
+        await self.db.commit()
 
     async def set_cognee_dataset_id(self, project_id: uuid.UUID, dataset_id: str) -> None:
         project = await self.get_by_id(project_id)
-        if project:
-            project.cognee_dataset_id = dataset_id
-            await self.db.commit()
+        if not project:
+            raise ValueError(f"Project {project_id} not found — cannot set cognee_dataset_id")
+        project.cognee_dataset_id = dataset_id
+        await self.db.commit()
 
     async def create_ingestion_job(self, project_id: uuid.UUID) -> IngestionJob:
         job = IngestionJob(
