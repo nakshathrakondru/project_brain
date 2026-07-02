@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-brain}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-brainpass}
+      POSTGRES_DB: ${POSTGRES_DB:-project_brain}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Wait until the DB is actually accepting connections on the target database
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-brain} -d ${POSTGRES_DB:-project_brain}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # App database
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-brain}:${POSTGRES_PASSWORD:-brainpass}@postgres:5432/${POSTGRES_DB:-project_brain}
+      DATABASE_URL_SYNC: postgresql://${POSTGRES_USER:-brain}:${POSTGRES_PASSWORD:-brainpass}@postgres:5432/${POSTGRES_DB:-project_brain}
+      # Clerk auth
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      # Groq — used for all LLM calls (AI Tech Lead, task gen, onboarding)
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      # Cognee v1.x LLM config — points at Groq via LiteLLM prefix
+      LLM_API_KEY: ${GROQ_API_KEY}
+      LLM_MODEL: groq/llama-3.1-8b-instant
+      # Cognee embeddings — OpenAI (Groq doesn't offer embeddings)
+      EMBEDDING_API_KEY: ${OPENAI_API_KEY}
+      EMBEDDING_MODEL: openai/text-embedding-3-small
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # GitHub
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      # Cognee local storage path
+      COGNEE_DB_PATH: /app/data/cognee
+      # Disable cognee's connection preflight test (avoids 30s timeout on startup)
+      COGNEE_SKIP_CONNECTION_TEST: "true"
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    volumes:
+      - cognee_data:/app/data/cognee
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /dashboard
+    depends_on:
+      - api
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  cognee_data:
