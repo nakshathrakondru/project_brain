@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.services.memory_service import setup_cognee
-from app.api.v1 import auth, organizations, projects, memory, tasks, graph, timeline, dashboard, onboarding
+from app.api.v1 import auth, organizations, projects, memory, tasks, graph, timeline, dashboard, onboarding, tickets, assignments, editor, agent, sessions
 
 settings = get_settings()
 
@@ -19,8 +19,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Project Brain API",
-    description="Knowledge graph service for software projects",
+    title="Mycelium API",
+    description="Shared AI memory for dev teams",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -44,6 +44,11 @@ app.include_router(organizations.router, prefix=PREFIX)
 app.include_router(projects.router, prefix=PREFIX)
 app.include_router(memory.router, prefix=PREFIX)
 app.include_router(tasks.router, prefix=PREFIX)
+app.include_router(tickets.router, prefix=PREFIX)
+app.include_router(assignments.router, prefix=PREFIX)
+app.include_router(editor.router, prefix=PREFIX)
+app.include_router(agent.router, prefix=PREFIX)
+app.include_router(sessions.router, prefix=PREFIX)
 app.include_router(graph.router, prefix=PREFIX)
 app.include_router(timeline.router, prefix=PREFIX)
 app.include_router(dashboard.router, prefix=PREFIX)

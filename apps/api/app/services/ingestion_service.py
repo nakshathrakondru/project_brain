@@ -24,6 +24,7 @@ INGESTIBLE_EXTENSIONS = {
 
 # Max file size to ingest (bytes) — skip large generated files
 MAX_FILE_SIZE = 100_000  # 100 KB
+MAX_CONTENT_CHARS = 2000  # Truncate content to avoid Groq TPM limits
 
 
 def _parse_repo_url(repo_url: str) -> str:
@@ -75,7 +76,8 @@ async def run_ingestion(
         await repo_repo.set_cognee_dataset_id(project_id, dataset_id)
 
         repo_slug = _parse_repo_url(project.repo_url)
-        gh = Github(settings.github_token or None)
+        from github import Auth
+        gh = Github(auth=Auth.Token(settings.github_token)) if settings.github_token else Github()
         repo = gh.get_repo(repo_slug)
 
         documents: list[dict] = []
@@ -112,6 +114,8 @@ async def run_ingestion(
                 if ext in INGESTIBLE_EXTENSIONS and item.size < MAX_FILE_SIZE:
                     try:
                         file_content = item.decoded_content.decode("utf-8", errors="ignore")
+                        # Truncate large files to stay under Groq TPM limits
+                        file_content = file_content[:MAX_CONTENT_CHARS]
                         documents.append({
                             "type": "File",
                             "id": f"file_{item.sha}",
@@ -180,10 +184,38 @@ async def run_ingestion(
         except GithubException:
             pass
 
-        # --- Step 6: Write everything to Cognee ---
+        # --- Step 6: Write everything to Cognee Cloud ---
+        # Cognee Cloud handles LLM/embeddings on their side — single call is fine
         await memory_service.write_nodes(str(project_id), documents)
 
-        # --- Step 7: Mark complete ---
+        # --- Step 7: Checkout working copy for the in-app editor ---
+        import os, subprocess, shutil
+        working_dir = f"/app/working_copies/{project_id}"
+        if not os.path.exists(working_dir):
+            os.makedirs(working_dir, exist_ok=True)
+            try:
+                # Clone with depth=1 for speed; use token for private repos
+                token = settings.github_token
+                clone_url = project.repo_url
+                if token and "github.com" in clone_url:
+                    clone_url = clone_url.replace(
+                        "https://github.com/",
+                        f"https://{token}@github.com/"
+                    )
+                branch = project.repo_default_branch or "main"
+                subprocess.run(
+                    ["git", "clone", "--depth=1", "--branch", branch, clone_url, working_dir],
+                    check=True, capture_output=True, timeout=120
+                )
+            except Exception as e:
+                # Working copy failure is non-fatal — ingestion still succeeds
+                shutil.rmtree(working_dir, ignore_errors=True)
+                working_dir = None
+
+        if working_dir and os.path.exists(working_dir):
+            await repo_repo.set_working_copy_path(project_id, working_dir)
+
+        # --- Step 8: Mark complete ---
         await repo_repo.update_ingestion_job(
             job_id,
             status="completed",

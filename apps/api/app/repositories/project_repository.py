@@ -57,6 +57,13 @@ class ProjectRepository:
         project.ingestion_status = status
         await self.db.commit()
 
+    async def set_working_copy_path(self, project_id: uuid.UUID, path: str) -> None:
+        project = await self.get_by_id(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        project.working_copy_path = path
+        await self.db.commit()
+
     async def set_cognee_dataset_id(self, project_id: uuid.UUID, dataset_id: str) -> None:
         project = await self.get_by_id(project_id)
         if not project:

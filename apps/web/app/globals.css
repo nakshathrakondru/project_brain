@@ -2,58 +2,158 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
-  }
+/* ── Mycelium Design Tokens ──────────────────────────────────────────────── */
+:root {
+  /* Brand */
+  --brand:          220 90% 60%;     /* Blue-500 — primary actions, logo */
+  --brand-dim:      220 90% 60% / 0.15;
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+  /* Status colors — consistent app-wide */
+  --status-done:    160 84% 39%;     /* emerald-500 */
+  --status-active:  38  92% 50%;     /* amber-500 */
+  --status-failed:  0   84% 60%;     /* red-500 */
+  --status-pending: 215 20% 65%;     /* slate-400 */
+  --status-memory:  250 89% 65%;     /* indigo-400 — written to memory */
+
+  /* Neutral scale */
+  --surface-0:      222 47% 4%;      /* slate-950 — page bg */
+  --surface-1:      215 28% 8%;      /* slate-900 — card */
+  --surface-2:      215 25% 12%;     /* slate-800 — hover */
+  --border-subtle:  215 20% 18%;     /* white/10 equivalent */
+  --text-primary:   0   0%  98%;
+  --text-secondary: 215 20% 65%;     /* white/60 */
+  --text-muted:     215 16% 40%;     /* white/30 */
+
+  /* Radix tokens (kept for component compat) */
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 220 90% 60%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 220 90% 60%;
+  --radius: 0.5rem;
+}
+
+/* ── Base resets ──────────────────────────────────────────────────────────── */
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+}
+
+/* ── Typography scale ─────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-heading    { @apply text-lg font-semibold tracking-tight text-white; }
+  .text-subheading { @apply text-sm font-medium text-white/80; }
+  .text-body       { @apply text-sm text-white/70 leading-relaxed; }
+  .text-meta       { @apply text-xs text-white/40; }
+  .text-badge      { @apply text-xs font-medium; }
+}
+
+/* ── Button hierarchy ─────────────────────────────────────────────────────── */
+@layer components {
+  /* Primary — blue, used for the single most important action on a page */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500
+           disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 rounded-lg text-sm font-medium text-white
+           transition-colors;
+  }
+  /* Secondary — ghost border, used for confirmations and secondary CTAs */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 border border-white/15 hover:border-white/30
+           hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed
+           px-4 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white
+           transition-colors;
+  }
+  /* Ghost — tertiary, icon-adjacent, no border */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 text-white/40 hover:text-white/80
+           disabled:opacity-30 px-2 py-1 rounded text-xs transition-colors;
+  }
+  /* Danger — destructive actions */
+  .btn-danger {
+    @apply inline-flex items-center gap-2 bg-red-600/80 hover:bg-red-500
+           px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors;
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+/* ── Status pills ─────────────────────────────────────────────────────────── */
+@layer components {
+  .status-pill {
+    @apply inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full border;
   }
-  body {
-    @apply bg-background text-foreground;
+  .status-pill-done    { @apply bg-emerald-500/10 text-emerald-400 border-emerald-500/20; }
+  .status-pill-active  { @apply bg-amber-500/10  text-amber-400  border-amber-500/20;  }
+  .status-pill-failed  { @apply bg-red-500/10    text-red-400    border-red-500/20;    }
+  .status-pill-pending { @apply bg-white/5       text-white/40   border-white/10;      }
+  .status-pill-memory  { @apply bg-indigo-500/10 text-indigo-400 border-indigo-500/20; }
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+@layer components {
+  .card {
+    @apply bg-white/[0.03] border border-white/10 rounded-xl;
   }
+  .card-hover {
+    @apply card hover:bg-white/[0.06] hover:border-white/20 transition-all cursor-pointer;
+  }
+  /* Failed project card — red left accent */
+  .card-failed {
+    @apply card border-red-500/20 border-l-2 border-l-red-500/60;
+  }
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+@layer components {
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 px-8 text-center
+           border border-dashed border-white/10 rounded-xl;
+  }
+  .empty-state-icon  { @apply h-10 w-10 text-white/20 mb-4; }
+  .empty-state-title { @apply text-sm font-medium text-white/50 mb-1; }
+  .empty-state-desc  { @apply text-xs text-white/30 mb-5 max-w-xs; }
+}
+
+/* ── Loading skeleton ─────────────────────────────────────────────────────── */
+@layer components {
+  .skeleton {
+    @apply bg-white/5 rounded animate-pulse;
+  }
+}
+
+/* ── Focused mode slide-in (used by ProjectNav overlay) ──────────────────── */
+@layer utilities {
+  .animate-slide-in {
+    animation: slideIn 0.18s ease-out;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+}
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

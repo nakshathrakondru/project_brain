@@ -1,10 +1,10 @@
 /**
- * Typed API client for the Project Brain FastAPI backend.
+ * Typed API client for the Mycelium FastAPI backend.
  * All requests include the Clerk JWT via the Authorization header.
  */
 import { auth } from "@clerk/nextjs/server";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const API_PREFIX = `${API_BASE}/api/v1`;
 
 export class ApiError extends Error {

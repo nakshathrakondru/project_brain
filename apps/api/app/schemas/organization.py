@@ -19,4 +19,4 @@ class OrganizationRead(BaseModel):
 
 class InviteMemberRequest(BaseModel):
     email: str
-    role: str = "member"
+    role: str = "employee"  # manager | employee

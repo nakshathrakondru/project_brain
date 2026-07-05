@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, field_validator
 
 
 class UserBase(BaseModel):
-    email: EmailStr
+    email: str
     name: str | None = None
     avatar_url: str | None = None
 
@@ -24,6 +24,12 @@ class UserRead(UserBase):
 class UserUpsert(BaseModel):
     """Used by the JWT middleware to upsert a user on first login."""
     auth_provider_id: str
-    email: EmailStr
+    email: str  # plain str — Clerk fallback emails like user@clerk.local are valid here
     name: str | None = None
     avatar_url: str | None = None
+
+    @field_validator("email")
+    @classmethod
+    def clean_email(cls, v: str) -> str:
+        # Strip whitespace, lowercase
+        return v.strip().lower() if v else v

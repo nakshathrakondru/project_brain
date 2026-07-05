@@ -38,7 +38,7 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY}
       # Cognee v1.x LLM config — points at Groq via LiteLLM prefix
       LLM_API_KEY: ${GROQ_API_KEY}
-      LLM_MODEL: groq/llama-3.1-8b-instant
+      LLM_MODEL: groq/llama-3.3-70b-versatile
       # Cognee embeddings — OpenAI (Groq doesn't offer embeddings)
       EMBEDDING_API_KEY: ${OPENAI_API_KEY}
       EMBEDDING_MODEL: openai/text-embedding-3-small
@@ -49,6 +49,7 @@ services:
       COGNEE_DB_PATH: /app/data/cognee
       # Disable cognee's connection preflight test (avoids 30s timeout on startup)
       COGNEE_SKIP_CONNECTION_TEST: "true"
+      DEFAULT_ORG_ID: ${NEXT_PUBLIC_DEFAULT_ORG_ID}
       ENVIRONMENT: ${ENVIRONMENT:-development}
     volumes:
       - cognee_data:/app/data/cognee
@@ -68,6 +69,9 @@ services:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_DEFAULT_ORG_ID: ${NEXT_PUBLIC_DEFAULT_ORG_ID}
+      # Internal URL for server-side Next.js → API calls within Docker network
+      INTERNAL_API_URL: http://api:8000
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
       NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard

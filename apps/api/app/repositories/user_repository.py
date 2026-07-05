@@ -25,8 +25,21 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def upsert(self, data: UserUpsert) -> User:
-        """Create or update a user from Clerk token data."""
+        """Create or update a user from Clerk token data.
+        
+        If a pre-seeded user exists with the same email (placeholder auth_provider_id),
+        link it to the real Clerk ID instead of creating a duplicate.
+        """
+        # 1. Try exact match on auth_provider_id
         user = await self.get_by_auth_provider_id(data.auth_provider_id)
+
+        if not user and data.email:
+            # 2. Try matching by email — links pre-seeded demo users to their real Clerk ID
+            user = await self.get_by_email(data.email)
+            if user and user.auth_provider_id.startswith("pending_"):
+                # This is a pre-seeded placeholder — update to the real Clerk ID
+                user.auth_provider_id = data.auth_provider_id
+
         if user:
             user.email = data.email
             if data.name:

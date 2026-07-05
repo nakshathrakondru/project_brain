@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Cognee
     cognee_db_path: str = "./data/cognee"
 
+    # Default org for auto-join on signup
+    default_org_id: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = False

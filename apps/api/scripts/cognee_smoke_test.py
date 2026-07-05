@@ -30,7 +30,7 @@ async def main():
 
     print("Writing test node via cognee.remember()...")
     result = await cognee.remember(
-        "Project Brain is a knowledge graph service for software projects. "
+        "Mycelium is a shared AI memory layer for dev teams. "
         "It uses Cognee for semantic memory and FastAPI for the backend.",
         dataset_name="smoke_test",
     )

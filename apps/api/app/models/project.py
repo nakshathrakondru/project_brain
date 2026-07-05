@@ -35,7 +35,9 @@ class Project(Base):
     members: Mapped[list["ProjectMember"]] = relationship(back_populates="project")
     ingestion_jobs: Mapped[list["IngestionJob"]] = relationship(back_populates="project")  # noqa: F821
     tasks: Mapped[list["Task"]] = relationship(back_populates="project")  # noqa: F821
+    tickets: Mapped[list["Ticket"]] = relationship(back_populates="project")  # noqa: F821
     conversations: Mapped[list["AIConversation"]] = relationship(back_populates="project")  # noqa: F821
+    working_copy_path: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class ProjectMember(Base):

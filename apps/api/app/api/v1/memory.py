@@ -36,6 +36,7 @@ async def ask_question(
         question=request.question,
         user_id=user.id,
         db=db,
+        session_id=request.session_id,
     )
     return AskResponse(**result)
 

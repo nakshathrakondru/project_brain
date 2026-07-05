@@ -46,13 +46,13 @@ export default function SearchPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="w-full px-6 md:px-10 py-8">
       <div className="mb-6">
         <h1 className="font-semibold text-lg">Smart Search</h1>
         <p className="text-xs text-white/40 mt-0.5">Semantic search over your project's knowledge graph</p>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 max-w-2xl">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
           <input
@@ -83,7 +83,7 @@ export default function SearchPage({ params }: { params: { id: string } }) {
         <p className="text-white/40 text-sm">No results found for "{query}"</p>
       )}
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {results.map((r) => (
           <div
             key={r.node_id}

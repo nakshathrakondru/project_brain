@@ -33,11 +33,11 @@ async def create_organization(
     db.add(org)
     await db.flush()
 
-    # Auto-add creator as owner
+    # Auto-add creator as manager (first member always gets manager role)
     member = OrganizationMember(
         organization_id=org.id,
         user_id=user.id,
-        role="owner",
+        role="manager",
         joined_at=datetime.now(timezone.utc),
     )
     db.add(member)
@@ -85,9 +85,9 @@ async def invite_member(
     member = OrganizationMember(
         organization_id=org_id,
         user_id=invitee.id,
-        role=data.role,
+        role=data.role if data.role in ("manager", "employee") else "employee",
         invited_at=datetime.now(timezone.utc),
-        joined_at=datetime.now(timezone.utc),  # auto-join for hackathon simplicity
+        joined_at=datetime.now(timezone.utc),
     )
     db.add(member)
     await db.commit()

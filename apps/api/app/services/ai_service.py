@@ -79,6 +79,7 @@ async def ask(
     question: str,
     user_id: uuid.UUID,
     db: AsyncSession,
+    session_id: uuid.UUID | None = None,
 ) -> dict:
     """
     AI Tech Lead: search memory for context, stream a grounded answer from Groq,
@@ -110,25 +111,38 @@ async def ask(
         max_tokens=1024,
     )
 
-    # 3. Write Q&A back into Cognee memory (makes the graph richer over time)
-    await memory_service.write_text(
+    # 3. Write Q&A back into Cognee memory (fire-and-forget — don't block the response)
+    import asyncio
+    asyncio.create_task(memory_service.write_text(
         project_id=project_id,
         text=(
             f"Conversation — Question: {question}\n"
             f"Answer: {answer}\n"
             f"Referenced: {', '.join(r['title'] for r in memory_results)}"
         ),
-    )
+    ))
 
-    # 4. Persist to Postgres
+    # 4. Persist to Postgres (with session_id)
+    from sqlalchemy import select
+    from app.models.session import ChatSession
     convo = AIConversation(
         project_id=uuid.UUID(project_id),
         user_id=user_id,
+        session_id=session_id,
         question=question,
         answer=answer,
         created_at=datetime.now(timezone.utc),
     )
     db.add(convo)
+    # Auto-title session from first message
+    if session_id:
+        result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
+        chat_session = result.scalar_one_or_none()
+        if chat_session and chat_session.title == "New chat":
+            chat_session.title = question[:50]
+            chat_session.updated_at = datetime.now(timezone.utc)
+        elif chat_session:
+            chat_session.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(convo)
 

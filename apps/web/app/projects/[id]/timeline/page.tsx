@@ -37,7 +37,7 @@ export default function TimelinePage({ params }: { params: { id: string } }) {
   }, []);
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="w-full px-6 md:px-10 py-8">
       <h1 className="font-semibold text-lg mb-1">Timeline</h1>
       <p className="text-xs text-white/40 mb-8">Chronological feed of project memory events</p>
 

@@ -29,3 +29,6 @@ class User(Base):
     conversations: Mapped[list["AIConversation"]] = relationship(  # noqa: F821
         back_populates="user"
     )
+    assigned_tickets: Mapped[list["Ticket"]] = relationship(  # noqa: F821
+        foreign_keys="Ticket.assigned_to", back_populates="assignee"
+    )

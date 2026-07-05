@@ -7,7 +7,7 @@ from app.core.db import get_db, AsyncSessionLocal
 from app.core.security import get_current_user_id
 from app.api.deps import get_user_or_401
 from app.repositories.project_repository import ProjectRepository
-from app.schemas.project import ProjectCreate, ProjectRead
+from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 from app.schemas.ingestion import IngestionStatusResponse, IngestionJobRead
 from app.services.ingestion_service import run_ingestion
 
@@ -50,6 +50,61 @@ async def get_project(
     project = await project_repo.get_by_id(project_id)
     if not project or project.organization_id != org_id:
         raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@router.delete("/{project_id}", status_code=204)
+async def delete_project(
+    org_id: uuid.UUID,
+    project_id: uuid.UUID,
+    user_auth_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a project and all its related data."""
+    from sqlalchemy import text
+    project_repo = ProjectRepository(db)
+    project = await project_repo.get_by_id(project_id)
+    if not project or project.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Delete in dependency order to avoid FK constraint violations
+    await db.execute(text("DELETE FROM agent_actions WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM agent_messages WHERE session_id IN (SELECT id FROM agent_sessions WHERE project_id = :pid)").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM agent_sessions WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM chat_sessions WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM tickets WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM project_assignments WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM project_members WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM ingestion_jobs WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM ai_conversations WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM tasks WHERE project_id = :pid").bindparams(pid=project_id))
+    await db.execute(text("DELETE FROM projects WHERE id = :pid").bindparams(pid=project_id))
+    await db.commit()
+async def update_project(
+    org_id: uuid.UUID,
+    project_id: uuid.UUID,
+    data: ProjectUpdate,
+    user_auth_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update project metadata (name, description, repo_url, branch)."""
+    project_repo = ProjectRepository(db)
+    project = await project_repo.get_by_id(project_id)
+    if not project or project.organization_id != org_id:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if data.name is not None:
+        project.name = data.name
+    if data.description is not None:
+        project.description = data.description
+    if data.repo_url is not None:
+        project.repo_url = data.repo_url
+        project.ingestion_status = "not_started"  # Reset so user can re-ingest
+    if data.repo_default_branch is not None:
+        project.repo_default_branch = data.repo_default_branch
+
+    await db.commit()
+    await db.refresh(project)
     return project
 
 

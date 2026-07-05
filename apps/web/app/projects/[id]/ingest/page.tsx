@@ -18,19 +18,23 @@ export default function IngestPage({ params }: { params: { id: string } }) {
   const [polling, setPolling] = useState(false);
 
   const fetchStatus = useCallback(async () => {
-    const token = await getToken();
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organizations/${DEFAULT_ORG_ID}/projects/${params.id}/ingest/status`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) return;
-    const data = await res.json();
-    setStatus(data.ingestion_status);
-    if (data.latest_job) {
-      setFilesProcessed(data.latest_job.files_processed ?? 0);
-      if (data.latest_job.error_message) setError(data.latest_job.error_message);
+    try {
+      const token = await getToken();
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organizations/${DEFAULT_ORG_ID}/projects/${params.id}/ingest/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      setStatus(data.ingestion_status);
+      if (data.latest_job) {
+        setFilesProcessed(data.latest_job.files_processed ?? 0);
+        if (data.latest_job.error_message) setError(data.latest_job.error_message);
+      }
+      return data.ingestion_status as IngestionStatus;
+    } catch {
+      // Network error — silently retry on next poll cycle
     }
-    return data.ingestion_status as IngestionStatus;
   }, [getToken, params.id]);
 
   // Poll while in progress

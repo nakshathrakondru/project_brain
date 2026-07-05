@@ -29,7 +29,7 @@ export default function OnboardingPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="w-full px-6 md:px-10 py-8">
       <div className="mb-6">
         <h1 className="font-semibold text-lg">Developer Onboarding</h1>
         <p className="text-xs text-white/40 mt-0.5">
